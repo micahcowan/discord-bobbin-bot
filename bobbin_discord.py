@@ -8,6 +8,7 @@ from enum import Enum
 import logging
 import logging.handlers
 import os
+import re
 import subprocess
 
 intents = discord.Intents(messages=True)
@@ -88,6 +89,9 @@ def bobbin_output_to_msg(message : discord.Message, outb : bytes) -> str:
         return "[[could not process output]]"
     if s.strip() == '':
         return "[[script produced no output]]"
+
+    s = re.sub('[`]{3}', '`\u200C`\u200C`', s)
+
     return '```\n' + s + '\n```\n'
 
 async def run_bobbin(input: bytes):
