@@ -85,7 +85,7 @@ def bobbin_output_to_msg(message : discord.Message, outb : bytes) -> str:
 
 async def run_bobbin(input: bytes):
 
-    proc = await asyncio.create_subprocess_exec("bobbin",
+    proc = await asyncio.create_subprocess_shell("bobbin --bot-mode --max-frames 7200",
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
