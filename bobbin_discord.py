@@ -13,7 +13,8 @@ intents = discord.Intents(messages=True)
 intents.message_content = True
 client = discord.Client(intents=intents)
 logger = logging.getLogger('bobbin')
-msg_logger = logging.getLogger('bobbin.message')
+ann_logger = logging.getLogger('bobbin.message')
+msg_logger = logging.getLogger('bobbin.message.content')
 
 def main():
     tokf = open("token.txt")
@@ -94,6 +95,27 @@ async def run_bobbin(input: bytes):
 
     return (out + b"\n" + err)
 
+def log_received(message : discord.Message, acc : Acceptability):
+    f : str = ""
+    msgid = message.id
+    user = message.author.name
+    uid = message.author.id
+    cname = ""
+    if not hasattr(message, 'channel'):
+        cname = "None"
+    elif hasattr(message.channel, 'name'):
+        cname = message.channel.name
+    else:
+        cname = f"#{message.channel.id}"
+
+    if acc == Acceptability.TAGGED:
+        f = f"We were tagged (!bobbin) in msgid {msgid} by user {user} ({uid}) on {message.guild.name}#{cname}."
+    elif acc == Acceptability.MENTIONED:
+        f = f"We were mentioned in msgid {msgid} by user {user} ({uid}) on {message.guild.name}#{cname}."
+    elif acc == Acceptability.DIRECT_MESSAGE:
+        f = f"User {user} ({uid}) sent us a direct message (id {msgid})."
+    ann_logger.info(f)
+
 @client.event
 async def on_ready():
     logger.info(f'We have logged in as {client.user}')
@@ -107,13 +129,17 @@ async def on_message(message: discord.Message):
     if acc == Acceptability.UNACCEPTABLE:
         return
 
+    log_received(message, acc)
+
     prep = msg_to_bobbin_input(message, message.content)
     outb = await run_bobbin(prep)
     outstr = bobbin_output_to_msg(message, outb)
 
     if acc == Acceptability.DIRECT_MESSAGE:
+        ann_logger.info(f"Replying to {message.author.name}'s DM (msgid {message.id}).")
         await message.channel.send(outstr)
     else:
+        ann_logger.info(f"Replaying to {message.author.name}, msgid {message.id}.")
         await message.reply(outstr)
 
 ########################################
