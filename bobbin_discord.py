@@ -101,6 +101,17 @@ async def run_bobbin(input: bytes):
 
     return (out + b"\n" + err)
 
+async def apologize(acc : Acceptability, message : discord.Message):
+    outstr = "[[Sorry, this bot experienced an internal error]]"
+    if acc == Acceptability.DIRECT_MESSAGE:
+        ann_logger.info(f"Apologizing to {message.author.name}'s DM"
+                        + f" (msgid {message.id}).")
+        await message.channel.send(outstr)
+    else:
+        ann_logger.info(f"Apologizing to {message.author.name},"
+                        + f"msgid {message.id}.")
+        await message.reply(outstr)
+
 def log_received(message : discord.Message, acc : Acceptability):
     f : str = ""
     msgid = message.id
@@ -137,16 +148,20 @@ async def on_message(message: discord.Message):
 
     log_received(message, acc)
 
-    prep = msg_to_bobbin_input(message, message.content)
-    outb = await run_bobbin(prep)
-    outstr = bobbin_output_to_msg(message, outb)
+    try:
+        prep = msg_to_bobbin_input(message, message.content)
+        outb = await run_bobbin(prep)
+        outstr = bobbin_output_to_msg(message, outb)
 
-    if acc == Acceptability.DIRECT_MESSAGE:
-        ann_logger.info(f"Replying to {message.author.name}'s DM (msgid {message.id}).")
-        await message.channel.send(outstr)
-    else:
-        ann_logger.info(f"Replaying to {message.author.name}, msgid {message.id}.")
-        await message.reply(outstr)
+        if acc == Acceptability.DIRECT_MESSAGE:
+            ann_logger.info(f"Replying to {message.author.name}'s DM (msgid {message.id}).")
+            await message.channel.send(outstr)
+        else:
+            ann_logger.info(f"Replying to {message.author.name}, msgid {message.id}.")
+            await message.reply(outstr)
+    except Exception as e:
+        await apologize(acc, message)
+        raise e
 
 ########################################
 
