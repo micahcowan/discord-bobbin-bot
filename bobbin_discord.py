@@ -68,7 +68,7 @@ def msg_to_bobbin_input(message : discord.Message, inp: str) -> bytes:
     except UnicodeEncodeError:
         logger.warn(f'Message #{message.id} contained non-ASCII chars! Removed invalid chars')
         encoded = unencoded.encode('us-ascii', errors='ignore')
-    if encoded[-1] != b'\n':
+    if encoded[-1] != b'\n'[-1]:
         encoded += b'\n'
     return encoded
 
