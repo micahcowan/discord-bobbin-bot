@@ -7,6 +7,7 @@ import discord
 from enum import Enum
 import logging
 import logging.handlers
+import os
 import subprocess
 
 intents = discord.Intents(messages=True)
@@ -29,8 +30,13 @@ class Acceptability(Enum):
     DIRECT_MESSAGE  = 3
 
 def getLogHandler():
+    try:
+        os.mkdir('logs')
+    except FileExistsError:
+        pass # that's fine
+
     handler = logging.handlers.RotatingFileHandler(
-        filename='discord.log',
+        filename='logs/discord.log',
         encoding='utf-8',
         maxBytes=32 * 1024 * 1024,  # 32 MiB
         backupCount=5,  # Rotate through 5 files
