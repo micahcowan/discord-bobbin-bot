@@ -13,9 +13,12 @@ import os
 import re
 import subprocess
 import sys
+from typing import Optional
 
 MSG_MAX_BYTES = 1900
 MSG_MAX_LINES = 30
+guildMap = {}
+channelMap = {}
 
 intents = discord.Intents(messages=True)
 intents.message_content = True
@@ -23,6 +26,12 @@ client = discord.Client(intents=intents)
 logger = logging.getLogger('bobbin')
 ann_logger = logging.getLogger('bobbin.message')
 msg_logger = logging.getLogger('bobbin.message.content')
+
+class Acceptability(Enum):
+    UNACCEPTABLE    = 0
+    TAGGED          = 1
+    MENTIONED       = 2
+    DIRECT_MESSAGE  = 3
 
 def getDiscordLogHandler():
     try:
@@ -40,6 +49,8 @@ def getDiscordLogHandler():
 
 discord.utils.setup_logging(handler=getDiscordLogHandler(), root=True)
 
+########################################
+
 def main():
     tokf = open("token.txt")
     token = tokf.readline().rstrip()
@@ -50,11 +61,33 @@ def main():
     atexit.register(bleat)
     client.run(token)
 
-class Acceptability(Enum):
-    UNACCEPTABLE    = 0
-    TAGGED          = 1
-    MENTIONED       = 2
-    DIRECT_MESSAGE  = 3
+async def getGuildName(guild):
+    if (hasattr(guild, 'name') and guild.name is not None
+            and len(guild.name) != 0):
+        if guild.id not in guildMap:
+            guildMap[id] = guild.name
+        return guild.name
+
+    if guild.id in guildMap:
+        return guildMap[guild.id]
+
+    realg = await client.fetch_guild(guild.id)
+    guildMap[guild.id] = realg.name
+    return realg.name
+
+async def getChannelName(channel):
+    if (hasattr(channel, 'name') and channel.name is not None
+            and len(channel.name) != 0):
+        if channel.id not in channelMap:
+            channelMap[id] = channel.name
+        return channel.name
+
+    if channel.id in channelMap:
+        return channelMap[channel.id]
+
+    realChan = await client.fetch_channel(channel.id)
+    channelMap[channel.id] = realChan.name
+    return realChan.name
 
 def get_msg_acceptability(message: discord.Message) -> Acceptability:
     content = message.content.strip()
@@ -148,23 +181,18 @@ async def apologize(acc : Acceptability, message : discord.Message):
                         + f"msgid {message.id}.")
         await message.reply(outstr)
 
-def log_received(message : discord.Message, acc : Acceptability):
+def log_received(message : discord.Message, acc : Acceptability,
+                 guildName : Optional[str] = None,
+                 chanName : Optional[str] = None):
     f : str = ""
     msgid = message.id
     user = message.author.name
     uid = message.author.id
-    cname = ""
-    if not hasattr(message, 'channel'):
-        cname = "None"
-    elif hasattr(message.channel, 'name'):
-        cname = message.channel.name
-    else:
-        cname = f"#{message.channel.id}"
 
     if acc == Acceptability.TAGGED:
-        f = f"We were tagged (!bobbin) in msgid {msgid} by user {user} ({uid}) on {message.guild.name}#{cname}."
+        f = f"We were tagged (!bobbin) in msgid {msgid} by user {user} ({uid}) on {guildName}#{chanName}."
     elif acc == Acceptability.MENTIONED:
-        f = f"We were mentioned in msgid {msgid} by user {user} ({uid}) on {message.guild.name}#{cname}."
+        f = f"We were mentioned in msgid {msgid} by user {user} ({uid}) on {guildName}#{chanName}."
     elif acc == Acceptability.DIRECT_MESSAGE:
         f = f"User {user} ({uid}) sent us a direct message (id {msgid})."
     ann_logger.info(f)
@@ -182,7 +210,12 @@ async def on_message(message: discord.Message):
     if acc == Acceptability.UNACCEPTABLE:
         return
 
-    log_received(message, acc)
+    kwArgs = {}
+    if acc != Acceptability.DIRECT_MESSAGE:
+        kwArgs['guildName'] = await getGuildName(message.guild)
+        kwArgs['chanName']  = await getChannelName(message.channel)
+        logger.info(repr(kwArgs))
+    log_received(message, acc, **kwArgs)
 
     try:
         prep = msg_to_bobbin_input(message, message.content)
