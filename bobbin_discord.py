@@ -60,13 +60,13 @@ def get_msg_acceptability(message: discord.Message) -> Acceptability:
 def msg_to_bobbin_input(message : discord.Message, inp: str) -> bytes:
     lines = inp.splitlines(keepends=True)
 
-    if "bobbin" in lines[0].lower() or '<@' in lines[0]:
+    if "!bobbin" in lines[0].lower() or '<@' in lines[0]:
         lines.pop(0)
 
-    if lines[0].strip().startswith("```"):
+    if len(lines) > 0 and lines[0].strip().startswith("```"):
         lines.pop(0)
 
-    if lines[-1].strip().startswith("```"):
+    if len(lines) > 0 and lines[-1].strip().startswith("```"):
         lines.pop()
 
     unencoded = ''.join(lines)
