@@ -3,13 +3,19 @@
 # This example requires the 'message_content' intent.
 
 import asyncio
+import atexit
 import discord
+import discord.utils
 from enum import Enum
 import logging
 import logging.handlers
 import os
 import re
 import subprocess
+import sys
+
+MSG_MAX_BYTES = 1900
+MSG_MAX_LINES = 30
 
 intents = discord.Intents(messages=True)
 intents.message_content = True
@@ -18,22 +24,7 @@ logger = logging.getLogger('bobbin')
 ann_logger = logging.getLogger('bobbin.message')
 msg_logger = logging.getLogger('bobbin.message.content')
 
-MSG_MAX_BYTES = 1900
-MSG_MAX_LINES = 30
-
-def main():
-    tokf = open("token.txt")
-    token = tokf.readline().rstrip()
-
-    client.run(token, log_handler=getLogHandler(), root_logger=True)
-
-class Acceptability(Enum):
-    UNACCEPTABLE    = 0
-    TAGGED          = 1
-    MENTIONED       = 2
-    DIRECT_MESSAGE  = 3
-
-def getLogHandler():
+def getDiscordLogHandler():
     try:
         os.mkdir('logs')
     except FileExistsError:
@@ -46,6 +37,24 @@ def getLogHandler():
         backupCount=5,  # Rotate through 5 files
     )
     return handler
+
+discord.utils.setup_logging(handler=getDiscordLogHandler(), root=True)
+
+def main():
+    tokf = open("token.txt")
+    token = tokf.readline().rstrip()
+
+    logger.info('BOBBIN BOT STARTING')
+    def bleat():
+        logger.info('BOBBIN BOT SHUTTING DOWN')
+    atexit.register(bleat)
+    client.run(token)
+
+class Acceptability(Enum):
+    UNACCEPTABLE    = 0
+    TAGGED          = 1
+    MENTIONED       = 2
+    DIRECT_MESSAGE  = 3
 
 def get_msg_acceptability(message: discord.Message) -> Acceptability:
     content = message.content.strip()
