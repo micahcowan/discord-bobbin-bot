@@ -18,6 +18,9 @@ logger = logging.getLogger('bobbin')
 ann_logger = logging.getLogger('bobbin.message')
 msg_logger = logging.getLogger('bobbin.message.content')
 
+MSG_MAX_BYTES = 1900
+MSG_MAX_LINES = 30
+
 def main():
     tokf = open("token.txt")
     token = tokf.readline().rstrip()
@@ -92,14 +95,34 @@ def bobbin_output_to_msg(message : discord.Message, outb : bytes) -> str:
 
     s = re.sub('[`]{3}', '`\u200C`\u200C`', s)
 
-    return '```\n' + s + '\n```\n'
+    # Check that the output isn't huge
+    trunc = False
+    if s.count('\n') > MSG_MAX_LINES:
+        trunc = True
+        lines = s.splitlines(keepends=True)
+        s = ''.join(lines[0:MSG_MAX_LINES])
+    if len(s) > MSG_MAX_BYTES:
+        trunc = True
+        s = s[0:MSG_MAX_BYTES] + '\n'
+
+    s = '```\n' + s + '```\n'
+    if trunc:
+        s += '[[Output was truncated]]'
+    return s
 
 async def run_bobbin(input: bytes):
-
-    proc = await asyncio.create_subprocess_shell("bobbin --bot-mode --max-frames 7200",
+    # The purpose of the `head` command in the shell pipeline below,
+    # is only to prevent storage of exxtremely long output from bobbin (and to
+    # terminate bobbin (via SIGPIPE) if it produces so much).
+    #  It is NOT intended to truncate output to an actually suitable size:
+    # we want to detect that elsewhere, so that we can then report the
+    # truncation to the user (and log)
+    proc = await asyncio.create_subprocess_shell(
+        "bobbin --bot-mode --max-frames 7200 | head -n 500 -c 5000",
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE)
+        stderr=subprocess.PIPE
+    )
 
     (out, err) = await proc.communicate(input)
 
