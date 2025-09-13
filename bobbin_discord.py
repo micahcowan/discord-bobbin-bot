@@ -190,11 +190,12 @@ def log_received(message : discord.Message, acc : Acceptability,
     uid = message.author.id
 
     if acc == Acceptability.TAGGED:
-        f = f"We were tagged (!bobbin) in msgid {msgid} by user {user} ({uid}) on {guildName}#{chanName}."
+        f = f"{guildName}#{chanName} {user} ({uid}) TAGGED msg ({msgid})"
     elif acc == Acceptability.MENTIONED:
         f = f"We were mentioned in msgid {msgid} by user {user} ({uid}) on {guildName}#{chanName}."
+        f = f"{guildName}#{chanName} {user} ({uid}) MENTIONED msg ({msgid})"
     elif acc == Acceptability.DIRECT_MESSAGE:
-        f = f"User {user} ({uid}) sent us a direct message (id {msgid})."
+        f = f"DIRECT MESSAGE: {user} ({uid}) msgid {msgid}."
     ann_logger.info(f)
 
 @client.event
