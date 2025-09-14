@@ -161,15 +161,10 @@ def parse_params(params: dict, line: str):
     for word in line.split():
         assign = word.split(sep=':', maxsplit=1)
         if len(assign) == 2:
-            logger.info(f'Got assignable {word}')
             [name, value] = assign
-            if name == 'm' and len(value) > 0:
-                logger.info('Got m!')
-                if value.lower() in acceptable_machines:
-                    logger.info(f'Got acceptable machine {value}!')
-                    params['machine'] = value
-                else:
-                    logger.info(f'Unacceptable machine {value}...')
+            if (name == 'm' and len(value) > 0
+                    and value.lower() in acceptable_machines):
+                params['machine'] = value
 
 def msg_to_bobbin_run_params(message : discord.Message, inp: str) -> dict:
     lines = inp.splitlines(keepends=True)
