@@ -19,8 +19,6 @@ from config import cfg
 
 MSG_MAX_BYTES = 1900
 MSG_MAX_LINES = 30
-guildMap = {}
-channelMap = {}
 
 def getDiscordLogHandler():
     try:
@@ -38,8 +36,11 @@ def getDiscordLogHandler():
 
 discord.utils.setup_logging(handler=getDiscordLogHandler(), root=True)
 
-intents = discord.Intents(messages=True)
-intents.message_content = True
+intents = discord.Intents(
+    messages = True,
+    message_content = True,
+    guilds = True,
+)
 client = discord.Client(intents=intents)
 logger = logging.getLogger('bobbin')
 ann_logger = logging.getLogger('bobbin.message')
@@ -70,34 +71,6 @@ def main():
         logger.info('BOBBIN BOT SHUTTING DOWN')
     atexit.register(bleat)
     client.run(cfg.token)
-
-async def getGuildName(guild):
-    if (hasattr(guild, 'name') and guild.name is not None
-            and len(guild.name) != 0):
-        if guild.id not in guildMap:
-            guildMap[id] = guild.name
-        return guild.name
-
-    if guild.id in guildMap:
-        return guildMap[guild.id]
-
-    realg = await client.fetch_guild(guild.id)
-    guildMap[guild.id] = realg.name
-    return realg.name
-
-async def getChannelName(channel):
-    if (hasattr(channel, 'name') and channel.name is not None
-            and len(channel.name) != 0):
-        if channel.id not in channelMap:
-            channelMap[id] = channel.name
-        return channel.name
-
-    if channel.id in channelMap:
-        return channelMap[channel.id]
-
-    realChan = await client.fetch_channel(channel.id)
-    channelMap[channel.id] = realChan.name
-    return realChan.name
 
 def get_msg_acceptability(message: discord.Message) -> Acceptability:
     content = message.content.strip()
@@ -191,13 +164,16 @@ async def apologize(acc : Acceptability, message : discord.Message):
                         + f"msgid {message.id}.")
         await message.reply(outstr)
 
-def log_received(message : discord.Message, acc : Acceptability,
-                 guildName : Optional[str] = None,
-                 chanName : Optional[str] = None):
+def log_received(message : discord.Message, acc : Acceptability):
     f : str = ""
     msgid = message.id
     user = message.author.name
     uid = message.author.id
+    guildName = None
+    chanName = None
+    if acc != Acceptability.ACC_DIRECT_MESSAGE:
+        guildName = message.guild.name
+        chanName = message.channel.name
 
     if acc == Acceptability.ACC_TAGGED:
         f = f"{guildName}#{chanName} {user} ({uid}) TAGGED msg ({msgid})"
@@ -221,11 +197,7 @@ async def on_message(message: discord.Message):
         return
 
     kwArgs = {}
-    if acc != Acceptability.ACC_DIRECT_MESSAGE:
-        kwArgs['guildName'] = await getGuildName(message.guild)
-        kwArgs['chanName']  = await getChannelName(message.channel)
-        logger.info(repr(kwArgs))
-    log_received(message, acc, **kwArgs)
+    log_received(message, acc)
 
     try:
         prep = msg_to_bobbin_input(message, message.content)
