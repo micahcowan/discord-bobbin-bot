@@ -18,6 +18,7 @@ Hello! This is the README for the **discord-bobbin-bot** project. It provides a 
 ### What can't you do?
 
 - Output any kind of graphics or sound
+- Get different results from `RND()` on different runs
 - Produce output of more than 30 lines, or 1900 characters (to mitigate the opportunity for spamming a channel)
 - Run a program or routine that would take more than 2 minutes to run on the real machine (it will only take a few seconds for the bot to run)
 - Run an interactive session with the emulated Apple
@@ -54,6 +55,39 @@ It is recommended, but not required, to begin and end your messages to **bobbin*
 If the bot is configured to respond on certain channels in your server, you may also begin any channel message with `!bobbin` in order to get the bot's attention; or you can type `@bobbin` followed by the Tab key, to &ldquo;mention&rdquo; bobbin. This must happen on the very first line of your message, and nowhere else. If you use the \`\`\` block, it must occur on the line *following* the `!bobbin` or `@bobbin`
 
 Please note that after typing `@bobbin`, you *must* follow that with a Tab keypress. At the time of this writing, f you instead type a Space, it will not appear to the bot that it has been mentioned, and so it will not respond. `!bobbin` is a more reliable means of attracting the bot's attention, so it is the recommended method.
+
+### Message Contents
+
+Since this is not an interactive session, and you cannot send a program listing separately from the program's listing, you must remember to follow your program listing with a `RUN` command, followed by any input the program expects from the user. For example:
+
+```
+10 ? "Hello and welcome!"
+20 ? "What is your name";:INPUT A$
+30 ? "Hello there, ";A$;", nice to meet you!"
+RUN
+Alice
+```
+
+Note that, after the program listing, it's necessary to add `RUN` on a line by itself, followed by the line &ldquo;`Alice`&rdquo;. If we don't include `Alice`, then the emulator will terminate the program when it encounters the `INPUT` statement, since there is no more input to send to the emulated Apple \]\[.
+
+If the program is expecting no input, you can send the BASIC listing without a final `RUN` command: the emulator will add it for you, if it has seen no other output yet.
+
+So, the following will automatically run the program listing:
+
+```
+10 for i = 1 to 3
+20 ? spc(i);"Hello!"
+30 next
+```
+
+But the program listing below will *not* be run, because it is preceded by a `PRINT` statement before the listing has been completed (producing output outside of the listed program), and a final `RUN` command was not included.
+
+```
+PRINT "Apple ][ is awesome!"
+10 for i = 1 to 3
+20 ? spc(i);"Hello!"
+30 next
+```
 
 ### Emulation Options
 
@@ -149,5 +183,7 @@ Some programs "print" by writing characters directly into screen memory. The bot
 ### Ending the Session
 
 On a real machine, of course, if you finish typing the computer doesn't shut off. However, this bot will end the emulation and send its output. You may wonder, how does it know when the emulation should end? First, it notes when all of the supplied input has been exhausted. But it cannot end the emulation at that point, because that input may have sent instructions whose output has not yet been produced. So it waits until the next time input is prompted again, and at that point terminates the emulation since there's nothing more to send. This also means that if you enter a program that includes an `INPUT` statement, but did not follow up your program with its input, the execution will end with the `INPUT` statement, and the rest of the program will not proceed.
+
+For &ldquo;input is prompted,&rdquo; above, we specifically mean that the "keyboard strobe" soft switch at `$C010` is invoked, indicating that whatever character value was read from the keyboard has been &ldquo;consumed&rdquo;. This &ldquo;consumption&rdquo; is also ow the emulator understands that it should stop representing the previous character on the keyboard soft switch (`$C000`), and should instead begin representing the next one available. When it runs out of characters to send, it still advertises that a character is available to be read (the carriage return, specifically), but when the program attempts to use it, clearing it out with the keyboard strobe, the emulator takes that as its cue to quit.
 
 As a special case, if the emulator would normally end (because it's being prompted for input after there is no more to send), but there has been no output collected as of yet, it will finish up by sending a `RUN` command, in case the user sent an AppleSoft program listing, but forgot to add the `RUN` command after it. It will only do this if it is at an input prompt and the prompt character is set to `]` (as it is when in &ldquo;direct mode&rdquo; in AppleSoft). THus, it will not send `RUN` to an `INPUT` statement (when the prompt is null), or to the monitor or miniassembler (with prompts `*` and `!`).
