@@ -15,6 +15,8 @@ import subprocess
 import sys
 from typing import Optional
 
+from config import cfg
+
 MSG_MAX_BYTES = 1900
 MSG_MAX_LINES = 30
 guildMap = {}
@@ -52,14 +54,11 @@ class Acceptability(Enum):
 ########################################
 
 def main():
-    tokf = open("token.txt")
-    token = tokf.readline().rstrip()
-
     logger.info('BOBBIN BOT STARTING')
     def bleat():
         logger.info('BOBBIN BOT SHUTTING DOWN')
     atexit.register(bleat)
-    client.run(token)
+    client.run(cfg.token)
 
 async def getGuildName(guild):
     if (hasattr(guild, 'name') and guild.name is not None
