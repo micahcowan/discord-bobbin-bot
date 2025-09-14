@@ -35,21 +35,18 @@ cfg = __Config()
 MSG_MAX_BYTES = 1900
 MSG_MAX_LINES = 30
 
-def getDiscordLogHandler():
-    try:
-        os.mkdir('logs')
-    except FileExistsError:
-        pass # that's fine
+def getDiscordLogHandler(fname):
+    os.makedirs( os.path.dirname(fname), exist_ok=True )
 
     handler = logging.handlers.RotatingFileHandler(
-        filename='logs/discord.log',
+        filename=fname,
         encoding='utf-8',
         maxBytes=32 * 1024 * 1024,  # 32 MiB
         backupCount=5,  # Rotate through 5 files
     )
     return handler
 
-discord.utils.setup_logging(handler=getDiscordLogHandler(), root=True)
+discord.utils.setup_logging(handler=getDiscordLogHandler('logs/discord.log'), root=True)
 
 intents = discord.Intents(
     messages = True,
@@ -62,6 +59,22 @@ msg_accept_logger = logging.getLogger('bobbin.message.incoming.accept')
 msg_reject_logger = logging.getLogger('bobbin.message.incoming.reject')
 msg_out_logger = logging.getLogger('bobbin.message.outgoing')
 apology_logger = logging.getLogger('bobbin.message.outgoing.apology')
+
+msg_logger = logging.getLogger('bobbin.message.content')
+msg_logger.propagate = False
+msg_logger.setLevel(logging.CRITICAL)
+chan_in_logger = logging.getLogger('bobbin.message.content.channel.incoming')
+chan_out_logger = logging.getLogger('bobbin.message.content.channel.outgoing')
+
+dm_log_handler = getDiscordLogHandler('logs/msgs/dms.log')
+dm_in_logger = logging.getLogger('bobbin.message.content.dm.incoming')
+dm_in_logger.addHandler(dm_log_handler)
+dm_in_logger.setLevel(logging.DEBUG)  # XXX s/b handled by cfg
+#dm_in_logger.propagate = False
+dm_out_logger = logging.getLogger('bobbin.message.content.dm.outgoing')
+dm_out_logger.addHandler(dm_log_handler)
+dm_out_logger.setLevel(logging.DEBUG) # XXX s/b handled by cfg
+#dm_out_logger.propagate = False
 
 adminUser = None
 class AdminReportLogHandler(logging.Handler):
@@ -288,6 +301,13 @@ async def on_message(message: discord.Message):
 
     kwArgs = {}
     log_received(message, acc)
+    if acc == Acceptability.ACC_DIRECT_MESSAGE:
+        dm_in_logger.debug(f'From uid {message.author.id}:\nINPUT\n'
+                           f'{message.content}\n')
+    else:
+        chan_in_logger.debug(f'{message.guild.name}#{message.channel.name},'
+                             f' from uid {message.author.id}:\nINPUT\n'
+                             f'{message.content}\n')
 
     try:
         prep : dict = msg_to_bobbin_run_params(message, message.content)
@@ -297,10 +317,16 @@ async def on_message(message: discord.Message):
         if acc == Acceptability.ACC_DIRECT_MESSAGE:
             msg_out_logger.info(f"Replying to {message.author.name}'s"
                                 f" DM (msgid {message.id}).")
+            dm_out_logger.debug(f'To uid {message.author.id}:\nOUTPUT\n'
+                                f'{outstr}\n')
             await message.channel.send(outstr)
         else:
             msg_out_logger.info(f"Replying to {message.author.name},"
                                 f"msgid {message.id}.")
+            chan_out_logger.debug(f'{message.guild.name}#'
+                                 f'{message.channel.name},'
+                                 f' to uid {message.author.id}:\nOUTPUT\n'
+                                 f'{outstr}\n')
             await message.reply(outstr)
     except Exception as e:
         await apologize(acc, message)
