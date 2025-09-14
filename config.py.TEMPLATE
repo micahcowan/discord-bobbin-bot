@@ -1,0 +1,29 @@
+class Config:
+    # All of the following members are required to exist, unless
+    #  they are commented out in this original config template.
+
+    # Application token for Discord API.
+    # See https://discordpy.readthedocs.io/en/stable/discord.html
+    #  for how to get one.
+    token = 'REPLACE-ME'
+
+    # Admin's Discord user ID number. Can be obtained from the logs
+    # after interacting with the bot.
+    admin_id = 00001
+
+    # List of acceptable channels for emulator messages to be honored.
+    # All other channels will be ignored.
+    #
+    # You can specify "servername#*" (with an asterisk (*) instead of
+    # the channel name) to accept all messages on that server,
+    # regardless of the channel.
+    acceptable_channels = [
+        'Example Server#general',
+        'MyServer#*'
+    ]
+
+    # Uncomment this config to have the bot message the admin user
+    # whenever there is activity. Could be a lot of messaging.
+    #
+    #notify_admin = ['bobbin.message.incoming',
+    #                'bobbin.message.outgoing.apology']
