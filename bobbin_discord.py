@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 
-# This example requires the 'message_content' intent.
+#   discord-bobbin-bot
+#     github.com/micahcowan/discord-bobbin-bot
+#     by Micah J Cowan <micah@addictivecode.org>
+#
+#   discord-bobbin-bot is licensed under the MIT License
+#   https://opensource.org/license/mit
 
 import asyncio
 import atexit
