@@ -15,7 +15,17 @@ import subprocess
 import sys
 from typing import Optional
 
-from config import cfg
+from config import Config
+
+class __Config(Config):
+    def channelOkay(self, chanName):
+        "Returns True if the fully-qualified channel name (server#channel)"
+        " is approved for messages."
+        [guildName, _] = chanName.split(sep='#', maxsplit=1)
+        return (chanName in self.acceptable_channels
+                or f'{guildName}#*' in self.acceptable_channels)
+
+cfg = __Config()
 
 MSG_MAX_BYTES = 1900
 MSG_MAX_LINES = 30
@@ -74,16 +84,35 @@ def main():
 
 def get_msg_acceptability(message: discord.Message) -> Acceptability:
     content = message.content.strip()
+    acc = Acceptability.REJ_CHAFF
+
     if isinstance(message.channel, discord.channel.DMChannel):
-        return Acceptability.ACC_DIRECT_MESSAGE
-        #await message.channel.send(f"direct messaging!  \"{content}\"")
+        acc = Acceptability.ACC_DIRECT_MESSAGE
     elif client.user in message.mentions:
-        return Acceptability.ACC_MENTIONED
-        #await message.reply(f"Replying: \"{content}\"")
+        acc =  Acceptability.ACC_MENTIONED
     elif content.startswith("!bobbin"):
-        return Acceptability.ACC_TAGGED
-        #await message.reply(f"Attract: \"{content}\"")
-    return Acceptability.REJ_CHAFF
+        acc = Acceptability.ACC_TAGGED
+
+    if acc.rejected():
+        # The message was never for us.
+        return acc
+
+    if acc == Acceptability.ACC_DIRECT_MESSAGE:
+        # It's a direct message. If we add user filtering later,
+        # we might need to check more; but for now that's an
+        # early accept.
+        return acc
+
+    # The message is for us; there may still be reasons we
+    #  shouldn't handle
+    if cfg.channelOkay(f'{message.guild.name}#{message.channel.name}'):
+        return acc
+    else:
+        ann_logger.info(f"{message.guild.name}#{message.channel.name}"
+                        f" {message.author.name} ({message.author.id})"
+                        f" attract in UNACCEPTABLE channel,"
+                        f" msg ({message.id})")
+        return Acceptability.REJ_CHANNEL
 
 def msg_to_bobbin_input(message : discord.Message, inp: str) -> bytes:
     lines = inp.splitlines(keepends=True)
