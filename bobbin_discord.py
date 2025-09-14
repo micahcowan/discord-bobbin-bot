@@ -56,6 +56,36 @@ logger = logging.getLogger('bobbin')
 ann_logger = logging.getLogger('bobbin.message')
 msg_logger = logging.getLogger('bobbin.message.content')
 
+adminUser = None
+class AdminReportLogHandler(logging.Handler):
+    def emit(self, record):
+        if not client.is_ready():
+            return
+        async def continuation():
+            global adminUser
+            if adminUser is None:
+                adminUser = await client.fetch_user(cfg.admin_id)
+            if adminUser is None:
+                return
+            s = self.format(record)
+            await adminUser.send(s)
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            asyncio.run(continuation())
+            return
+        loop.create_task(continuation())
+
+def setup_admin_reporting():
+    if not hasattr(cfg, 'notify_admin'):
+        return
+    for name in cfg.notify_admin:
+        logger = logging.getLogger(name)
+        logger.addHandler(AdminReportLogHandler())
+
+setup_admin_reporting()
+
 class Acceptability(Enum):
     def accepted(self):
         return self.value >= self.ACCEPT_LINE.value
