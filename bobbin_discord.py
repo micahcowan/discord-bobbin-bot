@@ -20,19 +20,6 @@ MSG_MAX_LINES = 30
 guildMap = {}
 channelMap = {}
 
-intents = discord.Intents(messages=True)
-intents.message_content = True
-client = discord.Client(intents=intents)
-logger = logging.getLogger('bobbin')
-ann_logger = logging.getLogger('bobbin.message')
-msg_logger = logging.getLogger('bobbin.message.content')
-
-class Acceptability(Enum):
-    UNACCEPTABLE    = 0
-    TAGGED          = 1
-    MENTIONED       = 2
-    DIRECT_MESSAGE  = 3
-
 def getDiscordLogHandler():
     try:
         os.mkdir('logs')
@@ -48,6 +35,19 @@ def getDiscordLogHandler():
     return handler
 
 discord.utils.setup_logging(handler=getDiscordLogHandler(), root=True)
+
+intents = discord.Intents(messages=True)
+intents.message_content = True
+client = discord.Client(intents=intents)
+logger = logging.getLogger('bobbin')
+ann_logger = logging.getLogger('bobbin.message')
+msg_logger = logging.getLogger('bobbin.message.content')
+
+class Acceptability(Enum):
+    UNACCEPTABLE    = 0
+    TAGGED          = 1
+    MENTIONED       = 2
+    DIRECT_MESSAGE  = 3
 
 ########################################
 
