@@ -171,7 +171,7 @@ def msg_to_bobbin_run_params(message : discord.Message, inp: str) -> dict:
     params = {}
 
     if ("!bobbin" in lines[0].lower() or '<@' in lines[0]
-            or lines[0].startswith('#')):
+            or lines[0].startswith('!')):
         parse_params(params, lines[0].strip())
         lines.pop(0)
 

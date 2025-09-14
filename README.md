@@ -93,7 +93,7 @@ PRINT "Apple ][ is awesome!"
 
 #### `m:`*machine*
 
-Currently there is a single option that can be provided to the bot, governing what flavor of Apple \]\[ machine it will emulate. By default, the bot will select an Enhanced Apple //e for the emulation. On the initial `!bobbin` line, you can add `m:plus`, and it will emulate an Apple \]\[+ instead.
+Currently there is a single option that can be provided to the bot, governing what flavor of Apple \]\[ machine it will emulate. By default, the bot will select an Enhanced Apple //e for the emulation. On the initial `!bobbin` line, you can add `m:plus`, and it will emulate an Apple \]\[+ instead. In a direct message, you can shorten `!bobbin` to just `!` (but there must be a space between it and the `m:` option).
 
 Here is a list of the Apple \]\[ machine flavors that the bot can emulate, along with the list of allowed arguments to the `m:` option that will select that machine flavor.
 
