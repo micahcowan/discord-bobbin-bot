@@ -17,7 +17,7 @@ Hello! This is the README for the **discord-bobbin-bot** project. It provides a 
 
 ### What can't you do?
 
-- Output any kind of graphics
+- Output any kind of graphics or sound
 - Produce output of more than 30 lines, or 1900 characters (to mitigate the opportunity for spamming a channel)
 - Run a program or routine that would take more than 2 minutes to run on the real machine (it will only take a few seconds for the bot to run)
 - Run an interactive session with the emulated Apple
@@ -91,9 +91,9 @@ Follow the `m:` option with either `enhanced` or  `//e`. Or leave out the `m:` o
 
 A miniassembler is available by typing `!` in the monitor (`CALL -151`). Type a blank line to return to the monitor.
 
-#### Exiting the Monitor (`CALL -151` routine)
+### Exiting the Monitor (`CALL -151` routine)
 
-##### Equivalent to Reset
+#### Equivalent to Reset
 
 You cannot type Reset. You also cannot type a Control-B or Control-C. This leaves you with none of the usual means for exiting the monitor program. In place of typing Reset, you can jump to whatever address is located at `FFFC.FFFD`:
 
@@ -132,6 +132,22 @@ print "hello!"
 hello!
 ```
 
-##### Control-B, Control-C
+#### Control-B, Control-C
 
 To do a cold-start into BASIC (equivalent to Control-B), use `E000G`; for warm-start (preserving any existing programs; equivalent to Control-C), use `E003G`
+
+## Emulation and Operation Details
+
+It's important to understand that the emulator (**bobbin**), ignores the actual contents of the text pages in RAM on the emulated machine. It &ldquo;knows&rdquo; what output was produced, not by what has been placed in memory, but by watching for when execution reaches the firmware `COUT1` routine, which is responsible for outputting characters to the screen. The emulator does not maintain an awareness of where the output cursor is located. If you print a long string of text in a real Apple \]\[, it will be broken at the 40-character mark. If you do it with this Discord bot, no line breaks will occur.
+
+The emulator simularly watches execution flow to determine when the things being printed to the screen are an input prompt, or echoed user input, and refrains from including these things in the output. On a real Apple \]\[ screen, you would see these, of course.
+
+There are a number of consequences to this. If you move the output cursor, via `HTAB` and `VTAB`, and print each letter of a word, then on a real Apple \]\[ you would see those characters individually at those random spots; in this bot, it will appear as the original word, wholly intact. In fact, this is also the reason the `TAB()` function (for use with `PRINT`) does not operate: unlike the `SPC()` function, it doesn't print any characters&mdash;it just moves the cursor! Since the emulator ignores the cursor location, theree is no effect on output.
+
+Some programs "print" by writing characters directly into screen memory. The bot will ignore such writing. This is why, on an Apple \]\[+, if you enter `FB60G` into the monitor, it will clear the screen and type "APPLE ][", centered on the top line. In this Discord bot, however, it will produce no output whatsoever.
+
+### Ending the Session
+
+On a real machine, of course, if you finish typing the computer doesn't shut off. However, this bot will end the emulation and send its output. You may wonder, how does it know when the emulation should end? First, it notes when all of the supplied input has been exhausted. But it cannot end the emulation at that point, because that input may have sent instructions whose output has not yet been produced. So it waits until the next time input is prompted again, and at that point terminates the emulation since there's nothing more to send. This also means that if you enter a program that includes an `INPUT` statement, but did not follow up your program with its input, the execution will end with the `INPUT` statement, and the rest of the program will not proceed.
+
+As a special case, if the emulator would normally end (because it's being prompted for input after there is no more to send), but there has been no output collected as of yet, it will finish up by sending a `RUN` command, in case the user sent an AppleSoft program listing, but forgot to add the `RUN` command after it. It will only do this if it is at an input prompt and the prompt character is set to `]` (as it is when in &ldquo;direct mode&rdquo; in AppleSoft). THus, it will not send `RUN` to an `INPUT` statement (when the prompt is null), or to the monitor or miniassembler (with prompts `*` and `!`).
