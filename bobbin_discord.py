@@ -46,10 +46,21 @@ ann_logger = logging.getLogger('bobbin.message')
 msg_logger = logging.getLogger('bobbin.message.content')
 
 class Acceptability(Enum):
-    UNACCEPTABLE    = 0
-    TAGGED          = 1
-    MENTIONED       = 2
-    DIRECT_MESSAGE  = 3
+    def accepted(self):
+        return self.value >= self.ACCEPT_LINE.value
+
+    def rejected(self):
+        return self.value < self.ACCEPT_LINE.value
+
+    REJ_CHAFF           = 0     # Message, nothing to do with us
+    REJ_CHANNEL         = 1     # Not an approved channel
+    REJ_USER            = 2     # Blocked user
+
+    ACCEPT_LINE         = 100
+
+    ACC_TAGGED          = 100
+    ACC_MENTIONED       = 101
+    ACC_DIRECT_MESSAGE  = 102
 
 ########################################
 
@@ -91,15 +102,15 @@ async def getChannelName(channel):
 def get_msg_acceptability(message: discord.Message) -> Acceptability:
     content = message.content.strip()
     if isinstance(message.channel, discord.channel.DMChannel):
-        return Acceptability.DIRECT_MESSAGE
+        return Acceptability.ACC_DIRECT_MESSAGE
         #await message.channel.send(f"direct messaging!  \"{content}\"")
     elif client.user in message.mentions:
-        return Acceptability.MENTIONED
+        return Acceptability.ACC_MENTIONED
         #await message.reply(f"Replying: \"{content}\"")
     elif content.startswith("!bobbin"):
-        return Acceptability.TAGGED
+        return Acceptability.ACC_TAGGED
         #await message.reply(f"Attract: \"{content}\"")
-    return Acceptability.UNACCEPTABLE
+    return Acceptability.REJ_CHAFF
 
 def msg_to_bobbin_input(message : discord.Message, inp: str) -> bytes:
     lines = inp.splitlines(keepends=True)
@@ -171,7 +182,7 @@ async def run_bobbin(input: bytes):
 
 async def apologize(acc : Acceptability, message : discord.Message):
     outstr = "[[Sorry, this bot experienced an internal error]]"
-    if acc == Acceptability.DIRECT_MESSAGE:
+    if acc == Acceptability.ACC_DIRECT_MESSAGE:
         ann_logger.info(f"Apologizing to {message.author.name}'s DM"
                         + f" (msgid {message.id}).")
         await message.channel.send(outstr)
@@ -188,12 +199,11 @@ def log_received(message : discord.Message, acc : Acceptability,
     user = message.author.name
     uid = message.author.id
 
-    if acc == Acceptability.TAGGED:
+    if acc == Acceptability.ACC_TAGGED:
         f = f"{guildName}#{chanName} {user} ({uid}) TAGGED msg ({msgid})"
-    elif acc == Acceptability.MENTIONED:
-        f = f"We were mentioned in msgid {msgid} by user {user} ({uid}) on {guildName}#{chanName}."
+    elif acc == Acceptability.ACC_MENTIONED:
         f = f"{guildName}#{chanName} {user} ({uid}) MENTIONED msg ({msgid})"
-    elif acc == Acceptability.DIRECT_MESSAGE:
+    elif acc == Acceptability.ACC_DIRECT_MESSAGE:
         f = f"DIRECT MESSAGE: {user} ({uid}) msgid {msgid}."
     ann_logger.info(f)
 
@@ -207,11 +217,11 @@ async def on_message(message: discord.Message):
         return
 
     acc = get_msg_acceptability(message)
-    if acc == Acceptability.UNACCEPTABLE:
+    if acc.rejected():
         return
 
     kwArgs = {}
-    if acc != Acceptability.DIRECT_MESSAGE:
+    if acc != Acceptability.ACC_DIRECT_MESSAGE:
         kwArgs['guildName'] = await getGuildName(message.guild)
         kwArgs['chanName']  = await getChannelName(message.channel)
         logger.info(repr(kwArgs))
@@ -222,7 +232,7 @@ async def on_message(message: discord.Message):
         outb = await run_bobbin(prep)
         outstr = bobbin_output_to_msg(message, outb)
 
-        if acc == Acceptability.DIRECT_MESSAGE:
+        if acc == Acceptability.ACC_DIRECT_MESSAGE:
             ann_logger.info(f"Replying to {message.author.name}'s DM (msgid {message.id}).")
             await message.channel.send(outstr)
         else:
