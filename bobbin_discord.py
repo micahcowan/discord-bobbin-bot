@@ -53,8 +53,10 @@ intents = discord.Intents(
 )
 client = discord.Client(intents=intents)
 logger = logging.getLogger('bobbin')
-ann_logger = logging.getLogger('bobbin.message')
-msg_logger = logging.getLogger('bobbin.message.content')
+msg_accept_logger = logging.getLogger('bobbin.message.incoming.accept')
+msg_reject_logger = logging.getLogger('bobbin.message.incoming.reject')
+msg_out_logger = logging.getLogger('bobbin.message.outgoing')
+apology_logger = logging.getLogger('bobbin.message.outgoing.apology')
 
 adminUser = None
 class AdminReportLogHandler(logging.Handler):
@@ -138,10 +140,10 @@ def get_msg_acceptability(message: discord.Message) -> Acceptability:
     if cfg.channelOkay(f'{message.guild.name}#{message.channel.name}'):
         return acc
     else:
-        ann_logger.info(f"{message.guild.name}#{message.channel.name}"
-                        f" {message.author.name} ({message.author.id})"
-                        f" attract in UNACCEPTABLE channel,"
-                        f" msg ({message.id})")
+        msg_reject_logger.info(f"{message.guild.name}#{message.channel.name}"
+                               f" {message.author.name} ({message.author.id})"
+                               f" attract in UNACCEPTABLE channel,"
+                               f" msg ({message.id})")
         return Acceptability.REJ_CHANNEL
 
 def msg_to_bobbin_input(message : discord.Message, inp: str) -> bytes:
@@ -215,12 +217,12 @@ async def run_bobbin(input: bytes):
 async def apologize(acc : Acceptability, message : discord.Message):
     outstr = "[[Sorry, this bot experienced an internal error]]"
     if acc == Acceptability.ACC_DIRECT_MESSAGE:
-        ann_logger.info(f"Apologizing to {message.author.name}'s DM"
-                        + f" (msgid {message.id}).")
+        apology_logger.info(f"Apologizing to {message.author.name}'s DM"
+                            f" (msgid {message.id}).")
         await message.channel.send(outstr)
     else:
-        ann_logger.info(f"Apologizing to {message.author.name},"
-                        + f"msgid {message.id}.")
+        apology_logger.info(f"Apologizing to {message.author.name},"
+                            f"msgid {message.id}.")
         await message.reply(outstr)
 
 def log_received(message : discord.Message, acc : Acceptability):
@@ -240,7 +242,7 @@ def log_received(message : discord.Message, acc : Acceptability):
         f = f"{guildName}#{chanName} {user} ({uid}) MENTIONED msg ({msgid})"
     elif acc == Acceptability.ACC_DIRECT_MESSAGE:
         f = f"DIRECT MESSAGE: {user} ({uid}) msgid {msgid}."
-    ann_logger.info(f)
+    msg_accept_logger.info(f)
 
 @client.event
 async def on_ready():
@@ -264,10 +266,12 @@ async def on_message(message: discord.Message):
         outstr = bobbin_output_to_msg(message, outb)
 
         if acc == Acceptability.ACC_DIRECT_MESSAGE:
-            ann_logger.info(f"Replying to {message.author.name}'s DM (msgid {message.id}).")
+            msg_out_logger.info(f"Replying to {message.author.name}'s"
+                                f" DM (msgid {message.id}).")
             await message.channel.send(outstr)
         else:
-            ann_logger.info(f"Replying to {message.author.name}, msgid {message.id}.")
+            msg_out_logger.info(f"Replying to {message.author.name},"
+                                f"msgid {message.id}.")
             await message.reply(outstr)
     except Exception as e:
         await apologize(acc, message)
