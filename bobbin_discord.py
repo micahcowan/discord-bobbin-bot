@@ -146,10 +146,33 @@ def get_msg_acceptability(message: discord.Message) -> Acceptability:
                                f" msg ({message.id})")
         return Acceptability.REJ_CHANNEL
 
-def msg_to_bobbin_input(message : discord.Message, inp: str) -> bytes:
-    lines = inp.splitlines(keepends=True)
+acceptable_machines = [
+    "enhanced", "//e",
+    "twoey", "][e", "iie",
+    "plus", "+", "][+", "ii+", "twoplus", "autostart", "applesoft", "asoft",
+    "original", "][", "ii", "two", "woz", "int", "integer",
+]
+def parse_params(params: dict, line: str):
+    for word in line.split():
+        assign = word.split(sep=':', maxsplit=1)
+        if len(assign) == 2:
+            logger.info(f'Got assignable {word}')
+            [name, value] = assign
+            if name == 'm' and len(value) > 0:
+                logger.info('Got m!')
+                if value.lower() in acceptable_machines:
+                    logger.info(f'Got acceptable machine {value}!')
+                    params['machine'] = value
+                else:
+                    logger.info(f'Unacceptable machine {value}...')
 
-    if "!bobbin" in lines[0].lower() or '<@' in lines[0]:
+def msg_to_bobbin_run_params(message : discord.Message, inp: str) -> dict:
+    lines = inp.splitlines(keepends=True)
+    params = {}
+
+    if ("!bobbin" in lines[0].lower() or '<@' in lines[0]
+            or lines[0].startswith('#')):
+        parse_params(params, lines[0].strip())
         lines.pop(0)
 
     if len(lines) > 0 and lines[0].strip().startswith("```"):
@@ -167,7 +190,9 @@ def msg_to_bobbin_input(message : discord.Message, inp: str) -> bytes:
         encoded = unencoded.encode('us-ascii', errors='ignore')
     if encoded[-1] != b'\n'[-1]:
         encoded += b'\n'
-    return encoded
+
+    params['input'] = encoded
+    return params
 
 def bobbin_output_to_msg(message : discord.Message, outb : bytes) -> str:
     s = None
@@ -196,15 +221,19 @@ def bobbin_output_to_msg(message : discord.Message, outb : bytes) -> str:
         s += '[[Output was truncated]]'
     return s
 
-async def run_bobbin(input: bytes):
+async def run_bobbin(input : bytes, machine : str = None) -> bytes:
     # The purpose of the `head` command in the shell pipeline below,
     # is only to prevent storage of exxtremely long output from bobbin (and to
     # terminate bobbin (via SIGPIPE) if it produces so much).
     #  It is NOT intended to truncate output to an actually suitable size:
     # we want to detect that elsewhere, so that we can then report the
     # truncation to the user (and log)
+    mstr = ''
+    if machine is not None and len(machine) > 0:
+        mstr = f'-m {machine}'
+
     proc = await asyncio.create_subprocess_shell(
-        "bobbin --bot-mode --max-frames 7200 | head -n 500 -c 5000",
+        f"bobbin --bot-mode --max-frames 7200 {mstr} | head -n 500 -c 5000",
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE
@@ -261,8 +290,8 @@ async def on_message(message: discord.Message):
     log_received(message, acc)
 
     try:
-        prep = msg_to_bobbin_input(message, message.content)
-        outb = await run_bobbin(prep)
+        prep : dict = msg_to_bobbin_run_params(message, message.content)
+        outb : bytes = await run_bobbin(**prep)
         outstr = bobbin_output_to_msg(message, outb)
 
         if acc == Acceptability.ACC_DIRECT_MESSAGE:
