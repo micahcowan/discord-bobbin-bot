@@ -23,6 +23,11 @@ from typing import Optional
 from config import Config
 
 class __Config(Config):
+    def __init__(self):
+        if not hasattr(self, 'attract_tag'):
+            self.attract_tag = '!bobbin'
+        super()
+
     def channelOkay(self, chanName):
         "Returns True if the fully-qualified channel name (server#channel)"
         " is approved for messages."
@@ -140,7 +145,7 @@ def get_msg_acceptability(message: discord.Message) -> Acceptability:
         acc = Acceptability.ACC_DIRECT_MESSAGE
     elif client.user in message.mentions:
         acc =  Acceptability.ACC_MENTIONED
-    elif content.startswith("!bobbin"):
+    elif content.startswith(cfg.attract_tag):
         acc = Acceptability.ACC_TAGGED
 
     if acc.rejected():
@@ -183,7 +188,7 @@ def msg_to_bobbin_run_params(message : discord.Message, inp: str) -> dict:
     lines = inp.splitlines(keepends=True)
     params = {}
 
-    if ("!bobbin" in lines[0].lower() or '<@' in lines[0]
+    if (cfg.attract_tag in lines[0].lower() or '<@' in lines[0]
             or lines[0].startswith('!')):
         parse_params(params, lines[0].strip())
         lines.pop(0)

@@ -7,6 +7,11 @@ class Config:
     #  for how to get one.
     token = 'REPLACE-ME'
 
+    # The tag used to attract the bot's attention. "!bobbin" by default.
+    # Highly recommended to begin with "!"
+    #
+    #attract_tag='!bobbin'
+
     # Admin's Discord user ID number. Can be obtained from the logs
     # after interacting with the bot.
     admin_id = 00001
