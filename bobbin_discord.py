@@ -150,7 +150,7 @@ def get_msg_acceptability(message: discord.Message) -> Acceptability:
 
     if isinstance(message.channel, discord.channel.DMChannel):
         acc = Acceptability.ACC_DIRECT_MESSAGE
-    elif client.user in message.mentions:
+    elif client.user in message.mentions and message.reference is None:
         acc =  Acceptability.ACC_MENTIONED
     elif content.startswith(cfg.attract_tag):
         acc = Acceptability.ACC_TAGGED
