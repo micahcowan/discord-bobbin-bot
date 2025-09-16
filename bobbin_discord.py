@@ -209,7 +209,8 @@ def msg_to_bobbin_run_params(message : discord.Message, inp: str) -> dict:
     try:
         encoded = unencoded.encode('us-ascii')
     except UnicodeEncodeError:
-        logger.warn(f'Message #{message.id} contained non-ASCII chars! Removed invalid chars')
+        params['warn'] = ('WARNING: Input contained non-ASCII chars'
+                          'that were stripped')
         encoded = unencoded.encode('us-ascii', errors='ignore')
     if len(encoded) == 0 or encoded[-1] != b'\n'[-1]:
         encoded += b'\n'
@@ -217,12 +218,13 @@ def msg_to_bobbin_run_params(message : discord.Message, inp: str) -> dict:
     params['input'] = encoded
     return params
 
-def bobbin_output_to_msg(message : discord.Message, outb : bytes) -> str:
+def bobbin_output_to_msg(message: discord.Message, outb: bytes,
+                         params: dict) -> str:
     s = None
     try:
         s = outb.decode('us-ascii')
     except UnicodeEncodeError:
-        logger.warn(f"bobbin's response to message #{message.id} failed to encode to ASCII?! Discarding.")
+        logger.warning(f"bobbin's response to message #{message.id} failed to encode to ASCII?! Discarding.")
         return "[[could not process output]]"
     if s.strip() == '':
         return "[[script produced no output]]"
@@ -242,9 +244,11 @@ def bobbin_output_to_msg(message : discord.Message, outb : bytes) -> str:
     s = '```\n' + s + '```\n'
     if trunc:
         s += '[[Output was truncated]]'
+    if 'warn' in params:
+        s = f'[[{params["warn"]}]]\n' + s
     return s
 
-async def run_bobbin(input : bytes, machine : str = None) -> bytes:
+async def run_bobbin(input : bytes, machine : str = None, **kwArgs) -> bytes:
     # The purpose of the `head` command in the shell pipeline below,
     # is only to prevent storage of exxtremely long output from bobbin (and to
     # terminate bobbin (via SIGPIPE) if it produces so much).
@@ -322,7 +326,7 @@ async def on_message(message: discord.Message):
     try:
         prep : dict = msg_to_bobbin_run_params(message, message.content)
         outb : bytes = await run_bobbin(**prep)
-        outstr = bobbin_output_to_msg(message, outb)
+        outstr = bobbin_output_to_msg(message, outb, prep)
 
         if acc == Acceptability.ACC_DIRECT_MESSAGE:
             msg_out_logger.info(f"Replying to {message.author.name}'s"
