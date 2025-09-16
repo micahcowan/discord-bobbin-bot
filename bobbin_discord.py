@@ -26,7 +26,7 @@ class __Config(Config):
     def __init__(self):
         if not hasattr(self, 'attract_tag'):
             self.attract_tag = '!bobbin'
-        super()
+        super().__init__()
 
     def channelOkay(self, chanName):
         "Returns True if the fully-qualified channel name (server#channel)"
@@ -49,6 +49,10 @@ def getDiscordLogHandler(fname):
         maxBytes=32 * 1024 * 1024,  # 32 MiB
         backupCount=5,  # Rotate through 5 files
     )
+    dt_fmt = '%Y-%m-%d %H:%M:%S'
+    formatter = logging.Formatter('[{asctime}] [{levelname:<8}]'
+                                  ' {name}: {message}', dt_fmt, style='{')
+    handler.setFormatter(formatter)
     return handler
 
 discord.utils.setup_logging(handler=getDiscordLogHandler('logs/discord.log'), root=True)
@@ -71,15 +75,15 @@ msg_logger.setLevel(logging.CRITICAL)
 chan_in_logger = logging.getLogger('bobbin.message.content.channel.incoming')
 chan_out_logger = logging.getLogger('bobbin.message.content.channel.outgoing')
 
+
 dm_log_handler = getDiscordLogHandler('logs/msgs/dms.log')
+
 dm_in_logger = logging.getLogger('bobbin.message.content.dm.incoming')
 dm_in_logger.addHandler(dm_log_handler)
 dm_in_logger.setLevel(logging.DEBUG)  # XXX s/b handled by cfg
-#dm_in_logger.propagate = False
 dm_out_logger = logging.getLogger('bobbin.message.content.dm.outgoing')
 dm_out_logger.addHandler(dm_log_handler)
 dm_out_logger.setLevel(logging.DEBUG) # XXX s/b handled by cfg
-#dm_out_logger.propagate = False
 
 adminUser = None
 class AdminReportLogHandler(logging.Handler):
