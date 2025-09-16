@@ -48,7 +48,7 @@ The reply will be:
 
 Note that the input text is not echoed, nor are the prompt characters you would see on a real Apple \]\['s screen.
 
-It is recommended, but not required, to begin and end your messages to **bobbin** with \`\`\`, on a line all on its own. The bot will strip it out&mdash;but only if it's on the first or last line of your message. Typing this causes Discord to format your message in a way that makes more sense for program input&mdash;but *also*, typing Enter in your message will not close and send the message until you terminate the \`\`\` block, which makes it much easier to avoid accidentally typing an Enter before you've finished typing the bot's input message. If you do *not* use \`\`\`, then you must remember to hold the Shift key down while you type the Enter for each line, in order to avoid sending your message prematurely.
+It is recommended, but not required, to begin and end your messages to **bobbin** with \`\`\`. The bot will strip it out wherever it finds it (including within `PRINT` statements&mdash;so avoid including them 3-in-a-row in your programs!). Typing this causes Discord to format your message in a way that makes more sense for program input&mdash;but *also*, typing Enter in your message will not close and send the message until you terminate the \`\`\` block, which makes it much easier to avoid accidentally typing an Enter before you've finished typing the bot's input message. If you do *not* use \`\`\`, then you must remember to hold the Shift key down while you type the Enter for each line, in order to avoid sending your message prematurely.
 
 ### Mentions and Tags
 

@@ -143,6 +143,9 @@ def main():
 
 def get_msg_acceptability(message: discord.Message) -> Acceptability:
     content = message.content.strip()
+    # Strip out ``` everywhere
+    content = content.replace('```','')
+
     acc = Acceptability.REJ_CHAFF
 
     if isinstance(message.channel, discord.channel.DMChannel):
@@ -189,6 +192,10 @@ def parse_params(params: dict, line: str):
                 params['machine'] = value
 
 def msg_to_bobbin_run_params(message : discord.Message, inp: str) -> dict:
+    inp = message.content.strip()
+    # Strip out ``` everywhere
+    inp = inp.replace('```','')
+
     lines = inp.splitlines(keepends=True)
     params = {}
 
@@ -196,12 +203,6 @@ def msg_to_bobbin_run_params(message : discord.Message, inp: str) -> dict:
             or lines[0].startswith('!')):
         parse_params(params, lines[0].strip())
         lines.pop(0)
-
-    if len(lines) > 0 and lines[0].strip().startswith("```"):
-        lines.pop(0)
-
-    if len(lines) > 0 and lines[-1].strip().startswith("```"):
-        lines.pop()
 
     unencoded = ''.join(lines)
     encoded = None
