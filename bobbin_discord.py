@@ -288,7 +288,7 @@ async def run_bobbin(input : bytes, machine : str = None, **kwArgs) -> bytes:
         mstr = f'-m {machine}'
 
     proc = await asyncio.create_subprocess_shell(
-        f"bobbin --bot-mode --max-frames 7200 {mstr} | head -n 500 -c 5000",
+        f"bobbin --bot-mode --max-runtime 120 {mstr} | head -n 500 -c 5000",
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE
