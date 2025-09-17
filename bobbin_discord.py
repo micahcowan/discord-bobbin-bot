@@ -176,6 +176,11 @@ def get_msg_acceptability(message: discord.Message) -> Acceptability:
                                f" msg ({message.id})")
         return Acceptability.REJ_CHANNEL
 
+def params_warn(params: dict, warn: str):
+    if not 'warn' in params:
+        params['warn'] = []
+    params['warn'].append(warn)
+
 acceptable_machines = [
     "enhanced", "//e",
     "twoey", "][e", "iie",
@@ -195,9 +200,21 @@ def msg_to_bobbin_run_params(message : discord.Message, inp: str) -> dict:
     inp = message.content.strip()
     # Strip out ``` everywhere
     inp = inp.replace('```','')
+    params = {}
+
+    newp =  inp.replace('\u2018',"'")
+    newp = newp.replace('\u2019',"'")
+    newp = newp.replace('\u201C','"')
+    newp = newp.replace('\u201D','"')
+    if inp != newp:
+        params_warn(params,
+            ('Input contained smart quotes (e.g. \u201C or \u201D,'
+             ' \u2018 or \u2019). They were replaced by ASCII'
+             ' quotes (" or \'). Consider disabling autoreplace'
+             ' in your system settings.'))
+    inp = newp
 
     lines = inp.splitlines(keepends=True)
-    params = {}
 
     if (cfg.attract_tag in lines[0].lower() or '<@' in lines[0]
             or lines[0].startswith('!')):
@@ -208,9 +225,11 @@ def msg_to_bobbin_run_params(message : discord.Message, inp: str) -> dict:
     encoded = None
     try:
         encoded = unencoded.encode('us-ascii')
-    except UnicodeEncodeError:
-        params['warn'] = ('WARNING: Input contained non-ASCII chars'
-                          'that were stripped')
+    except UnicodeEncodeError as e:
+        c = unencoded[e.start]
+        params_warn(params, ('Input contained non-ASCII chars'
+                             ' that were stripped; program may not work'
+                             ' as expected! First illegal char: ' + c))
         encoded = unencoded.encode('us-ascii', errors='ignore')
     if len(encoded) == 0 or encoded[-1] != b'\n'[-1]:
         encoded += b'\n'
@@ -245,7 +264,10 @@ def bobbin_output_to_msg(message: discord.Message, outb: bytes,
     if trunc:
         s += '[[Output was truncated]]'
     if 'warn' in params:
-        s = f'[[{params["warn"]}]]\n' + s
+        ww = ''
+        for w in params['warn']:
+            ww += '[[' + w + ']]\n'
+        s = ww + s
     return s
 
 async def run_bobbin(input : bytes, machine : str = None, **kwArgs) -> bytes:
