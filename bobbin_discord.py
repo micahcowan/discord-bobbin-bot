@@ -192,9 +192,11 @@ def parse_params(params: dict, line: str):
         assign = word.split(sep=':', maxsplit=1)
         if len(assign) == 2:
             [name, value] = assign
-            if (name == 'm' and len(value) > 0
-                    and value.lower() in acceptable_machines):
-                params['machine'] = value
+            if name == 'm':
+                if len(value) > 0 and value.lower() in acceptable_machines:
+                    params['machine'] = value
+                else:
+                    params_warn(params, f'm: invalid machine "{value}"')
 
 def msg_to_bobbin_run_params(message : discord.Message, inp: str) -> dict:
     inp = message.content.strip()
@@ -279,6 +281,10 @@ async def run_bobbin(input : bytes, machine : str = None, **kwArgs) -> bytes:
     # truncation to the user (and log)
     mstr = ''
     if machine is not None and len(machine) > 0:
+        # Note: `machine` comes from users, and therefore would be
+        # dangerous to interpolate into a shell command; but we
+        # do an *exact* string match on it first before including
+        # in params.
         mstr = f'-m {machine}'
 
     proc = await asyncio.create_subprocess_shell(
