@@ -212,7 +212,7 @@ def msg_to_bobbin_run_params(message : discord.Message, inp: str) -> dict:
         params_warn(params,
             ('Input contained smart quotes (e.g. \u201C or \u201D,'
              ' \u2018 or \u2019). They were replaced by ASCII'
-             ' quotes (" or \'). Consider disabling autoreplace'
+             ' quotes (" or \'). Consider disabling them'
              ' in your system settings.'))
     inp = newp
 
