@@ -1,0 +1,12 @@
+# The Discord secret token to use for the bot we're testing
+BOBBIN_TOKEN = 'REPLACEME'
+
+# The Discord secret token to use for this testing bot
+TESTER_TOKEN = 'REPLACEME'
+
+# The name of the serverand channel the bot should be permitted to
+# respond at
+test_channel_name = 'MyServer#mtestchannel'
+
+# The name of a server and channel the bot should NOT respond at
+forbid_channel_name = 'MyServer#forbidden'
