@@ -4,6 +4,8 @@ from typing import Any, Optional, TYPE_CHECKING
 
 from .configs import configs, Foo
 
+import testcfg as cfg
+
 if TYPE_CHECKING:
     from .app import App
     import discord
@@ -80,6 +82,6 @@ using_config = Foo
 
 Test(
     desc = 'hello world',
-    input = '!bobbin\n? "Hello, world!',
+    input = f'{cfg.attract_tag}\n? "Hello, world!',
     expected = '```\nHello, world!!\n```\n',
 )

@@ -4,9 +4,15 @@ BOBBIN_TOKEN = 'REPLACEME'
 # The Discord secret token to use for this testing bot
 TESTER_TOKEN = 'REPLACEME'
 
+# The user account for the bot under test
+test_user = 'REPLACEME'
+
 # The name or id# of the server and channel the bot should be permitted to
 # respond at
 test_chan = 'MyServer#mtestchannel'
 
 # The name or id# of a server and channel the bot should NOT respond at
 bad_chan = 'MyServer#forbidden'
+
+# the tag to start messages with to attract the test bot
+attract_tag = '!bobbin'

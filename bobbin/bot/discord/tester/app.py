@@ -49,6 +49,17 @@ class App(Client):
 
         return chan
 
+    def is_bot_under_test(self, user: discord.User | discord.Member) -> bool:
+        match : int|str = cfg.test_user
+        if isinstance(match, str):
+            if match == user.name:
+                print(f"user id for {match} is {user.id}.")
+                return True
+            else:
+                return False
+        else: # assume
+            return match == user.id
+
     def run(self, /, argv : list[str]) -> None: # type: ignore[override]
         super().run(token = cfg.TESTER_TOKEN)
         sys.exit(self.__status)
@@ -58,7 +69,7 @@ class App(Client):
         self.__status = 1
         await self.close()
 
-    async def send_test(self, msg: str, timeout: int = 5) -> str | None:
+    async def send_test(self, msg: str, timeout: int = 2) -> str | None:
         chan: DiscordChannel  = self.__get_channel_from_cfg('test_chan')
         await chan.send(msg) # type: ignore # (.send)
 
@@ -89,3 +100,14 @@ class App(Client):
         # Exit!
         self.__status = 0
         await self.close()
+
+    async def on_message(self, msg: discord.Message) -> None:
+        if msg.author == self.user:
+            return
+        if self.future is None:
+            return
+        if not self.is_bot_under_test(msg.author):
+            return
+
+        self.future.set_result(msg.content)
+        self.future = None
