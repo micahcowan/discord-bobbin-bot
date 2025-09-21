@@ -1,5 +1,6 @@
 import discord
 from discord.client import Client
+import sys
 
 import testcfg as cfg
 
@@ -12,6 +13,7 @@ class App(Client):
             guilds = True,
         )
         super().__init__(*args, intents=intents, **kargs)
+        self.__status = 1 # exit w failure status by default
 
     def __get_channel_from_cfg(self, name):
         chanSpec = getattr(cfg, name)
@@ -33,12 +35,18 @@ class App(Client):
 
     def run(self, argv : list) -> None:
         super().run(token = cfg.TESTER_TOKEN)
+        sys.exit(self.__status)
+
+    async def on_error(self, *args, **kwargs):
+        await super().on_error(*args, **kwargs)
+        self.__status = 1
+        await self.close()
 
     async def on_ready(self):
         chan = self.__get_channel_from_cfg('test_chan')
 
-        print(repr(chan))
         await chan.send('Hello, testing world!')
 
         # Exit!
+        self.__status = 0
         await self.close()
