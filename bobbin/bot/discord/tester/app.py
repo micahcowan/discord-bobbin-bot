@@ -1,5 +1,7 @@
+import asyncio
+from asyncio import Future
 import sys
-from typing import TYPE_CHECKING, Any, Callable, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import discord
 from discord.client import Client
@@ -8,13 +10,15 @@ from .tests import run_tests
 
 import testcfg as cfg
 
-if TYPE_CHECKING:
-    from ..util.types import DiscordChannel
+from ..util.types import DiscordChannel
 
-type Listener = Callable[[discord.Message], None]
+class ConcurrentSendTestException(Exception):
+    pass
 
 # The harness for the tests.
 class App(Client):
+    future: Optional[Future[Optional[str]]] = None
+
     def __init__(self, *args: Any, **kargs: Any) -> None:
         intents: discord.Intents = discord.Intents(
             messages = True,
@@ -54,12 +58,32 @@ class App(Client):
         self.__status = 1
         await self.close()
 
-    async def send_good(self, msg: str, lsn: Listener) -> None:
-        pass # XXX
+    async def send_test(self, msg: str, timeout: int = 5) -> str | None:
+        chan: DiscordChannel  = self.__get_channel_from_cfg('test_chan')
+        await chan.send(msg) # type: ignore # (.send)
+
+        if self.future is not None:
+            raise ConcurrentSendTestException()
+
+        # Now, send_test must not return until either:
+        #  (a) a channel message from the bot is received, which will be
+        #      then be returned, or
+        #  (b) a timeout occurs, in which case None is returned
+        future: Future[Optional[str]] = (
+            asyncio.get_running_loop().create_future())
+        self.future = future
+
+        async def delay() -> None:
+            await asyncio.sleep(timeout)
+            if self.future is not None and not self.future.done():
+                self.future.set_result(None)
+                self.future = None
+
+        asyncio.create_task(delay())
+
+        return await future
 
     async def on_ready(self) -> None:
-        chan = self.__get_channel_from_cfg('test_chan')
-
         await run_tests(self)
 
         # Exit!

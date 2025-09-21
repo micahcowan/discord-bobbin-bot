@@ -1,21 +1,34 @@
 from enum import Enum
-import sys
-from typing import Optional, TYPE_CHECKING
+from sys import stderr
+from typing import Any, Optional, TYPE_CHECKING
 
 from .configs import configs, Foo
 
 if TYPE_CHECKING:
     from .app import App
     import discord
+else:
+    App = None
 
 class TestAlreadyRunException(Exception):
-    def __init__(self, test: Test):
+    def __init__(self, test: Any): # Any, bc Test would be a forward ref
         self.__test__ = test
 
 class TS(Enum):
     PASS  = 0
     FAIL  = 1
     XFAIL = 2
+
+    def label(self) -> str:
+        return ['PASS', 'FAIL', 'XFAIL'][self.value]
+    def color_label(self) -> str:
+        # ANSI color sequences
+        colors: list[str] = [
+            '\033[1;32m',   # PASS: Bold Green
+            '\033[31m',     # FAIL: Red
+            '\033[1;34m',   # XFAIL: Bold Blue
+        ]
+        return '{colors[self.value]}{self.label()}\033[m'
 
 class Test:
     def __init__(
@@ -33,19 +46,35 @@ class Test:
         self.config = using_config
         using_config.register(self)
 
-    def listen(self, msg: discord.Message) -> None:
-        pass # XXX
 
     async def run(self, client: App) -> TS:
         if hasattr(self, 'status'):
             raise TestAlreadyRunException(self)
         self.status = TS.FAIL
-        def listener(msg: discord.Message) -> None:
-            self.listen(msg)
 
-        await client.send_good(self.input, listener) # may change status
+        print(f'  {self.desc:70}', end='', file=stderr)
+
+        rsp: str|None = await client.send_test(self.input)
+
+        print(f'[{self.status.color_label()}]\n', file=stderr)
+
+        if rsp == self.expected:
+            print('*** EXPECTED ***', file=stderr)
+
+        else:
+            print('*** NOT EXPECTED ***', file=stderr)
+        print(f'Expected:\n{repr(self.expected)}\nGot:\n{repr(rsp)}\n',
+              file=stderr)
+
         return self.status
 
+async def run_tests(client: App) -> None:
+    for tcfg in configs:
+        print(f'Running {tcfg.__name__} tests:', file=stderr)
+        await tcfg.run_tests(client)
+
+
+##################### TEST DEFINITIONS #####################
 
 using_config = Foo
 
@@ -54,8 +83,3 @@ Test(
     input = '!bobbin\n? "Hello, world!',
     expected = '```\nHello, world!!\n```\n',
 )
-
-async def run_tests(client: App) -> None:
-    for tcfg in configs:
-        print(f'Running {tcfg.__name__} tests:', file=sys.stderr)
-        tcfg.run_tests(client)
