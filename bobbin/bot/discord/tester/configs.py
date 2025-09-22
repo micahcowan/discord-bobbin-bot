@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from asyncio.subprocess import DEVNULL
 import posix
 import signal
 from sys import stderr
@@ -40,10 +41,28 @@ class Config:
             for t in cls.tests: # type: ignore[attr-defined]
                 await t.run(client)
 
+            print('Sleeping after tests', file=stderr)
+            await asyncio.sleep(2)
+
     ########## INSTANCE METHODS ##########
 
     def __init__(self, client: App) -> None:
         self.client = client
+
+    async def __wait_for_bot_ready(self, logfile: str) -> None:
+        c = 0
+        while c < 10:
+            await asyncio.sleep(1)
+            ++c
+            proc = await asyncio.create_subprocess_exec(
+                'grep', '-q', 'We have logged in as ', logfile,
+                stdin = DEVNULL, stderr = DEVNULL, stdout = DEVNULL
+            )
+            rslt = await proc.wait()
+            if rslt == 0:
+                return
+        raise Exception("Couldn't detect bobbin bot startup")
+
 
     async def __monitor_bobbin(self) -> None:
         if self.bobbin_proc is None:
@@ -101,6 +120,9 @@ class Config:
         self.bobbin_proc = proc
         task = asyncio.create_task(self.__monitor_bobbin())
         self.bobbin_monitor_task = task
+
+        # Wait for bobbin to come up
+        await self.__wait_for_bot_ready(f'{testdir}/logs/discord.log')
 
         return self
 

@@ -57,6 +57,8 @@ def getDiscordLogHandler(fname):
 
 discord.utils.setup_logging(handler=getDiscordLogHandler('logs/discord.log'), root=True)
 
+#logging.getLogger().setLevel(logging.DEBUG)
+
 intents = discord.Intents(
     messages = True,
     message_content = True,
