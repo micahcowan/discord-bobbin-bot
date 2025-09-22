@@ -96,7 +96,7 @@ class Config:
         # Fire up bobbin
         print('Spawning bobbin_discord.py.', file=stderr)
         proc = await asyncio.create_subprocess_shell(
-            f'cd {qtestdir} && ./bobbin_discord.py'
+            f'cd {qtestdir} && exec ./bobbin_discord.py'
         )
         self.bobbin_proc = proc
         task = asyncio.create_task(self.__monitor_bobbin())
@@ -113,7 +113,7 @@ class Config:
             self.bobbin_monitor_task.cancel()
             self.bobbin_monitor_task = None
         print('Killing bobbin_discord.py.', file=stderr)
-        proc.send_signal(signal.SIGTERM)
+        proc.send_signal(signal.SIGINT)
         await proc.wait()
 
     bobbin_proc: asyncio.subprocess.Process|None
