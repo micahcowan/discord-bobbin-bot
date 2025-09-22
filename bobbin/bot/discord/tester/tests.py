@@ -38,13 +38,16 @@ class Test:
     def __init__(
             self,
             desc: str,
+            /,
             input: str,
             expected: Optional[str] = None,
             xfail: bool = False,
+            channel: str = 'test_chan',
         ):
         self.desc = desc
         self.input = input
         self.expected = expected
+        self.channel = channel
 
         global using_config
         self.config = using_config
@@ -59,17 +62,18 @@ class Test:
         print(f'  {self.desc:70}', end='', file=stderr)
 
         rsp: str|None = await client.send_test(
-            self.input.format(tag = config.attract_tag)
+            self.input.format(tag = config.attract_tag),
+            channel = self.channel,
         )
 
         if rsp == self.expected:
             self.status = TS.PASS
 
-        print(f'[{self.status.color_label()}]\n', file=stderr)
+        print(f'[{self.status.color_label()}]', file=stderr)
 
         if self.status != TS.PASS:
             print('*** NOT EXPECTED ***', file=stderr)
-            print(f'Expected:\n{repr(self.expected)}\nGot:\n{repr(rsp)}\n',
+            print(f'Expected:\n{repr(self.expected)}\nGot:\n{repr(rsp)}',
                   file=stderr)
 
         return self.status
@@ -85,7 +89,21 @@ async def run_tests(client: App) -> None:
 using_config = Basic
 
 Test(
-    desc = 'hello world',
+    'hello world',
     input = '{tag}\n? "Hello, world!!',
     expected = '```\nHello, world!!\n```',
+)
+
+# Basic: Timeouts expected
+Test(
+    'wrong channel',
+    channel = 'bad_chan',
+    input = '{tag}\n? "Hello, world!!',
+    expected = None,
+)
+
+Test(
+    'untagged',
+    input = '? "Hello, world!!',
+    expected = None
 )

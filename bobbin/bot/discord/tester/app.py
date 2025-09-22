@@ -69,8 +69,13 @@ class App(Client):
         self.__status = 1
         await self.close()
 
-    async def send_test(self, msg: str, timeout: int = 2) -> str | None:
-        chan: DiscordChannel  = self.get_channel_from_cfg('test_chan')
+    async def send_test(
+                self, msg: str, /,
+                channel: str = 'test_chan',
+                timeout: int = 2
+            ) -> str | None:
+
+        chan: DiscordChannel  = self.get_channel_from_cfg(channel)
         await chan.send(msg) # type: ignore # (.send)
 
         if self.future is not None:
