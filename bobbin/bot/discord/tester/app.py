@@ -28,7 +28,7 @@ class App(Client):
         super().__init__(*args, intents=intents, **kargs)
         self.__status: int = 1 # exit w failure status by default
 
-    def __get_channel_from_cfg(self, name: str) -> DiscordChannel:
+    def get_channel_from_cfg(self, name: str) -> DiscordChannel:
         chanSpec: Union[str, int] = getattr(cfg, name)
         chan: DiscordChannel
         if not isinstance(chanSpec, str):
@@ -70,7 +70,7 @@ class App(Client):
         await self.close()
 
     async def send_test(self, msg: str, timeout: int = 2) -> str | None:
-        chan: DiscordChannel  = self.__get_channel_from_cfg('test_chan')
+        chan: DiscordChannel  = self.get_channel_from_cfg('test_chan')
         await chan.send(msg) # type: ignore # (.send)
 
         if self.future is not None:

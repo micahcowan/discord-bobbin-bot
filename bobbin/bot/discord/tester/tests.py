@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 from enum import Enum
 from sys import stderr
 from typing import Any, Optional, TYPE_CHECKING
 
-from .configs import configs, Foo
+from .configs import configs, Basic
 
 import testcfg as cfg
 
@@ -13,7 +15,7 @@ else:
     App = None
 
 class TestAlreadyRunException(Exception):
-    def __init__(self, test: Any): # Any, bc Test would be a forward ref
+    def __init__(self, test: Test):
         self.__test__ = test
 
 class TS(Enum):
@@ -30,7 +32,7 @@ class TS(Enum):
             '\033[31m',     # FAIL: Red
             '\033[1;34m',   # XFAIL: Bold Blue
         ]
-        return '{colors[self.value]}{self.label()}\033[m'
+        return f'{colors[self.value]}{self.label()}\033[m'
 
 class Test:
     def __init__(
@@ -78,7 +80,7 @@ async def run_tests(client: App) -> None:
 
 ##################### TEST DEFINITIONS #####################
 
-using_config = Foo
+using_config = Basic
 
 Test(
     desc = 'hello world',
