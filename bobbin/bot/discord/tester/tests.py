@@ -4,7 +4,7 @@ from enum import Enum
 from sys import stderr
 from typing import Any, Optional, TYPE_CHECKING
 
-from .configs import configs, Basic
+from .configs import configs, Basic, Config
 
 import testcfg as cfg
 
@@ -51,14 +51,16 @@ class Test:
         using_config.register(self)
 
 
-    async def run(self, client: App) -> TS:
+    async def run(self, client: App, config: Config) -> TS:
         if hasattr(self, 'status'):
             raise TestAlreadyRunException(self)
         self.status = TS.FAIL
 
         print(f'  {self.desc:70}', end='', file=stderr)
 
-        rsp: str|None = await client.send_test(self.input)
+        rsp: str|None = await client.send_test(
+            self.input.format(attract_tag = config.attract_tag)
+        )
 
         print(f'[{self.status.color_label()}]\n', file=stderr)
 
@@ -84,6 +86,6 @@ using_config = Basic
 
 Test(
     desc = 'hello world',
-    input = f'{cfg.attract_tag}\n? "Hello, world!',
+    input = '{attract_tag}\n? "Hello, world!',
     expected = '```\nHello, world!!\n```\n',
 )

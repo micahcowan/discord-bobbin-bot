@@ -13,6 +13,3 @@ test_chan = 'MyServer#mtestchannel'
 
 # The name or id# of a server and channel the bot should NOT respond at
 bad_chan = 'MyServer#forbidden'
-
-# the tag to start messages with to attract the test bot
-attract_tag = '!bobbin'

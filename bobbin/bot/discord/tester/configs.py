@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from asyncio.subprocess import DEVNULL
 import posix
+import random
 import signal
 from sys import stderr
 from typing import TYPE_CHECKING, Any, TextIO
@@ -37,9 +38,9 @@ class Config:
 
     @classmethod
     async def run_tests(cls, client: App) -> None:
-        async with cls(client):  # Use an instance of this Config as the ContextManager
+        async with cls(client) as self:  # Use an instance of this Config as the ContextManager
             for t in cls.tests: # type: ignore[attr-defined]
-                await t.run(client)
+                await t.run(client, self)
 
             print('Sleeping after tests', file=stderr)
             await asyncio.sleep(2)
@@ -48,6 +49,8 @@ class Config:
 
     def __init__(self, client: App) -> None:
         self.client = client
+        alphabet = bytes((i for i in range(0x61, 0x7B))).decode('us-ascii')
+        self.attract_tag = '!' + ''.join(random.choices(alphabet, k=8))
 
     async def __wait_for_bot_ready(self, logfile: str) -> None:
         c = 0
@@ -78,8 +81,8 @@ class Config:
         test_chan = self.client.get_channel_from_cfg('test_chan')
         file.write(
             f'class Config:\n'
-            f'    token = {cfg.BOBBIN_TOKEN}\n'
-            f'    attract_tag = {q(cfg.attract_tag)}\n'
+            f"    token = '{cfg.BOBBIN_TOKEN}'\n"
+            f'    attract_tag = {q(self.attract_tag)}\n'
             '\n'
             f'    admin_id = {self.client.user.id}\n' # type: ignore
             f'    notify_admin = []\n'
@@ -101,7 +104,7 @@ class Config:
         #   then create
         await shell_or_die(f'mkdir -pv {qtestdir}')
         #   now set up symlinks
-        await shell_or_die(f'ln -s ../../bobbin_discord.py {qtestdir}')
+        await shell_or_die(f'ln ./bobbin_discord.py {qtestdir}')
         await shell_or_die(f'ln -s ../../bobbin {qtestdir}')
 
         # Write the config file
