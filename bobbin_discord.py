@@ -298,7 +298,7 @@ async def run_bobbin(input : bytes, machine : str = None, **kwArgs) -> bytes:
 
     (out, err) = await proc.communicate(input)
 
-    return (out + b"\n" + err)
+    return (out + err)
 
 async def apologize(acc : Acceptability, message : discord.Message):
     outstr = "[[Sorry, this bot experienced an internal error]]"

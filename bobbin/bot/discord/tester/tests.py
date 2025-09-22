@@ -59,18 +59,18 @@ class Test:
         print(f'  {self.desc:70}', end='', file=stderr)
 
         rsp: str|None = await client.send_test(
-            self.input.format(attract_tag = config.attract_tag)
+            self.input.format(tag = config.attract_tag)
         )
+
+        if rsp == self.expected:
+            self.status = TS.PASS
 
         print(f'[{self.status.color_label()}]\n', file=stderr)
 
-        if rsp == self.expected:
-            print('*** EXPECTED ***', file=stderr)
-
-        else:
+        if self.status != TS.PASS:
             print('*** NOT EXPECTED ***', file=stderr)
-        print(f'Expected:\n{repr(self.expected)}\nGot:\n{repr(rsp)}\n',
-              file=stderr)
+            print(f'Expected:\n{repr(self.expected)}\nGot:\n{repr(rsp)}\n',
+                  file=stderr)
 
         return self.status
 
@@ -86,6 +86,6 @@ using_config = Basic
 
 Test(
     desc = 'hello world',
-    input = '{attract_tag}\n? "Hello, world!',
-    expected = '```\nHello, world!!\n```\n',
+    input = '{tag}\n? "Hello, world!!',
+    expected = '```\nHello, world!!\n```',
 )
