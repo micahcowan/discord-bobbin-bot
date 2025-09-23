@@ -35,7 +35,45 @@ class TS(Enum):
         ]
         return f'{colors[self.value]}{self.label()}\033[m'
 
+class Tally:
+    def __init__(self) -> None:
+        self.tallies: dict[TS, int] = {}
+
+    def register(self, result: TS) -> None:
+        t = self.tallies
+        if result in t:
+            t[result] += 1
+        else:
+            t[result] = 1
+
+    def count(self) -> int:
+        t = self.tallies
+        c: int = 0
+        for r in t:
+            c += t[r]
+        return c
+
+    def report(self) -> None:
+        print(file=stderr)
+        print(f'Total tests run: {self.count()}', file=stderr)
+        t = self.tallies
+        for result in t:
+            print(f'  {result.color_label()}: {t[result]}', file=stderr)
+        print(file=stderr)
+        if TS.FAIL in t:
+            print('Tests FAILED.', file=stderr)
+        elif TS.XFAIL in t:
+            print('Tests succeded (with expected failures).', file=stderr)
+        else:
+            print('Tests PASSED.', file=stderr)
+
+    def failed_any(self) -> bool:
+        return TS.FAIL in self.tallies
+
+
 class Test:
+    tally = Tally()
+
     def __init__(
             self,
             desc: str,

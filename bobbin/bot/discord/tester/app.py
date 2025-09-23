@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 import discord
 from discord.client import Client
 
-from .tests import run_tests
+from .tests import Test, run_tests
 
 import testcfg as cfg
 
@@ -105,7 +105,12 @@ class App(Client):
         await run_tests(self)
 
         # Exit!
-        self.__status = 0
+        t = Test.tally
+        t.report()
+        if t.failed_any():
+            self.__status = 1
+        else:
+            self.__status = 0
         await self.close()
 
     async def on_message(self, msg: discord.Message) -> None:
