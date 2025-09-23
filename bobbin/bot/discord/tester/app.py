@@ -77,8 +77,9 @@ class App(Client):
                 timeout: float = 2,
             ) -> str | None:
 
-        chan: DiscordChannel  = self.get_channel_from_cfg(channel)
-        await chan.send(msg) # type: ignore # (.send)
+        if channel != 'dm':
+            chan: DiscordChannel  = self.get_channel_from_cfg(channel)
+            await chan.send(msg) # type: ignore # (.send)
 
         if self.future is not None:
             raise ConcurrentSendTestException()

@@ -89,6 +89,7 @@ class Test:
         self.expected = expected
         self.channel = channel
         self.timeout = timeout
+        self.xfail = xfail
 
         global using_config
         self.config = using_config
@@ -99,6 +100,7 @@ class Test:
         if hasattr(self, 'status'):
             raise TestAlreadyRunException(self)
         self.status = TS.FAIL
+        if self.xfail: self.status = TS.XFAIL
 
         print(f'  {self.desc:70}', end='', file=stderr, flush=True)
 
@@ -109,11 +111,18 @@ class Test:
         )
 
         if rsp == self.expected:
-            self.status = TS.PASS
+            if self.xfail:
+                self.status = TS.FAIL
+            else:
+                self.status = TS.PASS
 
         print(f'[{self.status.color_label()}]', file=stderr)
 
-        if self.status != TS.PASS:
+        if self.xfail and self.status == TS.FAIL:
+            print('    expected failure, got pass, reporting as failure.',
+                  file=stderr)
+
+        if rsp != self.expected:
             print('*** NOT EXPECTED ***', file=stderr)
             print(f'Expected:\n{repr(self.expected)}\nGot:\n{repr(rsp)}',
                   file=stderr)
@@ -141,6 +150,12 @@ Test(
 )
 
 Test(
+    'code block stripping',
+    input = '{tag}```\n? "Hell```o, world!!\n```',
+    expected = '```\nHello, world!!\n```',
+)
+
+Test(
     'too many lines',
     input = '{tag}\n10 ? "Hello, world!!":goto 10',
     expected = (
@@ -158,6 +173,26 @@ Test(
         + ''.join(('*' for i in range(0,1900)))
         + '\n```\n[[Output was truncated]]'
     ),
+)
+
+Test(
+    'm:plus',
+    input = '{tag} m:plus\n? "{{test}}"',
+    expected = '```\n[TEST]\n```',
+)
+
+Test(
+    'm:invalid',
+    input = '{tag} m:invalid\n? "{{test}}"',
+    expected = '[[m: invalid machine "invalid"]]\n```\n{test}\n```',
+)
+
+Test(
+    'dm message',
+    input = '? "Hello, world!!',
+    expected = '```\nHello, world!!\n```',
+    channel = 'dm',
+    xfail = True,
 )
 
 # Basic: Timeouts expected
