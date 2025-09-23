@@ -4,6 +4,7 @@ from enum import Enum
 from sys import stderr
 from typing import Any, Optional, TYPE_CHECKING
 
+from ..util import shell_or_die
 from .configs import configs, Basic, Config
 
 import testcfg as cfg
@@ -61,7 +62,7 @@ class Test:
             raise TestAlreadyRunException(self)
         self.status = TS.FAIL
 
-        print(f'  {self.desc:70}', end='', file=stderr)
+        print(f'  {self.desc:70}', end='', file=stderr, flush=True)
 
         rsp: str|None = await client.send_test(
             self.input.format(tag = config.attract_tag),
@@ -79,11 +80,15 @@ class Test:
             print(f'Expected:\n{repr(self.expected)}\nGot:\n{repr(rsp)}',
                   file=stderr)
 
+        self.tally.register(self.status)
         return self.status
 
 async def run_tests(client: App) -> None:
+    # Remove test tempdir
+    print(file=stderr)
+    await shell_or_die(f'rm -frv ./testtmp')
+    print(file=stderr)
     for tcfg in configs:
-        print(f'Running {tcfg.__name__} tests:', file=stderr)
         await tcfg.run_tests(client)
 
 

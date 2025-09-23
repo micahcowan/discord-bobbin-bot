@@ -39,6 +39,7 @@ class Config:
     @classmethod
     async def run_tests(cls, client: App) -> None:
         async with cls(client) as self:  # Use an instance of this Config as the ContextManager
+            print(f'\nRunning {self.__class__.__name__} tests:', file=stderr)
             for t in cls.tests: # type: ignore[attr-defined]
                 await t.run(client, self)
 
@@ -63,6 +64,7 @@ class Config:
             )
             rslt = await proc.wait()
             if rslt == 0:
+                print('Bot under test is ready.\n', file=stderr)
                 return
         raise Exception("Couldn't detect bobbin bot startup")
 
@@ -99,9 +101,6 @@ class Config:
         # Set up the test dir
         testdir = f'./testtmp/{self.__class__.__name__}'
         qtestdir = q(testdir)
-        #   rm first, if necessary
-        await shell_or_die(f'rm -frv {qtestdir}')
-        #   then create
         await shell_or_die(f'mkdir -pv {qtestdir}')
         #   now set up symlinks
         await shell_or_die(f'ln ./bobbin_discord.py {qtestdir}')
@@ -118,13 +117,15 @@ class Config:
         # Fire up bobbin
         print('Spawning bobbin_discord.py.', file=stderr)
         proc = await asyncio.create_subprocess_shell(
-            f'cd {qtestdir} && exec ./bobbin_discord.py'
+            f'cd {qtestdir} && exec ./bobbin_discord.py',
+            stdout = DEVNULL, stderr = DEVNULL,
         )
         self.bobbin_proc = proc
         task = asyncio.create_task(self.__monitor_bobbin())
         self.bobbin_monitor_task = task
 
         # Wait for bobbin to come up
+        print('Waiting for signs of life from bobbin_discord.py.', file=stderr)
         await self.__wait_for_bot_ready(f'{testdir}/logs/discord.log')
 
         return self
