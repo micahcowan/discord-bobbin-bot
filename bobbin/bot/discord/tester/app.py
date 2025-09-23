@@ -1,6 +1,7 @@
 import asyncio
-from asyncio import Future
+from asyncio import Future, Task
 import sys
+from sys import stderr
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import discord
@@ -18,6 +19,7 @@ class ConcurrentSendTestException(Exception):
 # The harness for the tests.
 class App(Client):
     future: Optional[Future[Optional[str]]] = None
+    timeout_task: Task[None]|None = None
 
     def __init__(self, *args: Any, **kargs: Any) -> None:
         intents: discord.Intents = discord.Intents(
@@ -72,7 +74,7 @@ class App(Client):
     async def send_test(
                 self, msg: str, /,
                 channel: str = 'test_chan',
-                timeout: int = 2
+                timeout: float = 2,
             ) -> str | None:
 
         chan: DiscordChannel  = self.get_channel_from_cfg(channel)
@@ -89,13 +91,13 @@ class App(Client):
             asyncio.get_running_loop().create_future())
         self.future = future
 
-        async def delay() -> None:
-            await asyncio.sleep(timeout)
+        async def delay(tmout: float) -> None:
+            await asyncio.sleep(tmout)
             if self.future is not None and not self.future.done():
                 self.future.set_result(None)
                 self.future = None
 
-        asyncio.create_task(delay())
+        self.timeout_task = asyncio.create_task(delay(timeout))
 
         return await future
 
@@ -116,3 +118,6 @@ class App(Client):
 
         self.future.set_result(msg.content)
         self.future = None
+        if self.timeout_task is not None:
+            self.timeout_task.cancel()
+            self.timeout_task = None

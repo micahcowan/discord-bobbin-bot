@@ -43,11 +43,13 @@ class Test:
             expected: Optional[str] = None,
             xfail: bool = False,
             channel: str = 'test_chan',
+            timeout: float = 2,
         ):
         self.desc = desc
         self.input = input
         self.expected = expected
         self.channel = channel
+        self.timeout = timeout
 
         global using_config
         self.config = using_config
@@ -64,6 +66,7 @@ class Test:
         rsp: str|None = await client.send_test(
             self.input.format(tag = config.attract_tag),
             channel = self.channel,
+            timeout = self.timeout,
         )
 
         if rsp == self.expected:
@@ -106,4 +109,13 @@ Test(
     'untagged',
     input = '? "Hello, world!!',
     expected = None
+)
+
+# Longer timeout
+Test(
+    'bobbin timeout',
+    input = '{tag}\n10 PRINT "@";:FOR P=1 TO 10000:NEXT:GOTO 10\nRUN',
+    expected = ('```\n@@@@@@@@@@@@\nbobbin: max emulated runtime (120 secs)'
+                ' exceeded.\nbobbin: Exiting (3).\n```'),
+    timeout = 30,
 )
