@@ -77,8 +77,16 @@ class App(Client):
                 timeout: float = 2,
             ) -> str | None:
 
-        if channel != 'dm':
-            chan: DiscordChannel  = self.get_channel_from_cfg(channel)
+        chan: DiscordChannel | discord.User | discord.Member
+        if channel == 'dm':
+            # XXX This will only work if cfg.test_user is an id and
+            # not a name
+            #chan = await self.fetch_user(cfg.test_user)
+            # Using this to message will FAIL: Discord API
+            #  does not permit a bot to DM other bots.
+            pass # We're guaranteeing test failure by not sending...
+        else:
+            chan = self.get_channel_from_cfg(channel)
             await chan.send(msg) # type: ignore # (.send)
 
         if self.future is not None:
