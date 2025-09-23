@@ -97,6 +97,26 @@ Test(
     expected = '```\nHello, world!!\n```',
 )
 
+Test(
+    'too many lines',
+    input = '{tag}\n10 ? "Hello, world!!":goto 10',
+    expected = (
+        '```\n'
+        + ''.join(('Hello, world!!\n' for i in range(0,30)))
+        + '```\n[[Output was truncated]]'
+    ),
+)
+
+Test(
+    'too many chars',
+    input = '{tag}\n10 ? "*";:goto 10',
+    expected = (
+        '```\n'
+        + ''.join(('*' for i in range(0,1900)))
+        + '\n```\n[[Output was truncated]]'
+    ),
+)
+
 # Basic: Timeouts expected
 Test(
     'wrong channel',
